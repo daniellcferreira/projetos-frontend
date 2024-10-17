@@ -67,13 +67,79 @@ async function createCardImage(IdCard, fieldSide) {
     cardImage.addEventListener("click", () => {
       setCardsField(cardImage.getAttribute("data-id"));
     });
+
+    cardImage.addEventListener("mouseover", () => {
+      drawSelectCard(IdCard);
+    });
   }
 
-  cardImage.addEventListener("mouseover", () => {
-    drawSelectCard(IdCard);
-  });
-
   return cardImage;
+}
+
+async function setCardsField(cardId) {
+  await removeAllCardsImages();
+
+  let computerCardId = await getRandomCardId();
+
+  state.fieldCards.player.style.display = "block";
+  state.fieldCards.computer.style.display = "block";
+
+  state.cardSprites.name.innerHTML = "";
+  state.cardSprites.type.innerHTML = "";
+
+  state.cardSprites.avatar.src = "";
+
+  state.fieldCards.player.src = cardData[cardId].img;
+  state.fieldCards.computer.src = cardData[computerCardId].img;
+
+  let duelResults = await checkDuelResults(cardId, computerCardId);
+
+  await updateScore();
+  await drawButton(duelResults);
+}
+
+async function drawButton(text) {
+  state.actions.button.innerHTML = text;
+  state.actions.button.style.display = "block";
+}
+
+async function updateScore() {
+  state.score.scoreBox.innerHTML = `Win: ${state.score.playerScore} | Lose: ${state.score.computerScore}`;
+}
+
+async function checkDuelResults(playerCardId, computerCardId) {
+  let duelResults = "DRAW";
+  let playerCard = cardData[playerCardId];
+
+  if (playerCard.winOf.includes(computerCardId)) {
+    duelResults = "WIN";
+    await playAudio(duelResults);
+    state.score.playerScore++;
+  }
+
+  if (playerCard.loseOf.includes(computerCardId)) {
+    duelResults = "LOSE";
+    await playAudio(duelResults);
+    state.score.computerScore++;
+  }
+
+  return duelResults;
+}
+
+async function removeAllCardsImages() {
+  let cards = document.querySelector("#computer-cards");
+  let imgElements = cards.querySelectorAll("img");
+  imgElements.forEach((img) => img.remove());
+
+  cards = document.querySelector("#player-cards");
+  imgElements = cards.querySelectorAll("img");
+  imgElements.forEach((img) => img.remove());
+}
+
+async function drawSelectCard(index) {
+  state.cardSprites.avatar.src = cardData[index].img;
+  state.cardSprites.name.innerHTML = cardData[index].name;
+  state.cardSprites.type.innerHTML = "Attribute : " + cardData[index].type;
 }
 
 async function drawCards(cardNumbers, fieldSide) {
@@ -85,9 +151,31 @@ async function drawCards(cardNumbers, fieldSide) {
   }
 }
 
+async function resetDuel() {
+  state.cardSprites.avatar.src = "";
+  state.actions.button.style.display = "none";
+
+  state.fieldCards.player.style.display = "none";
+  state.fieldCards.computer.style.display = "none";
+
+  init();
+}
+
+async function playAudio(status) {
+  const audio = new Audio(`./src/assets/audios/${status}.wav`);
+  audio.play();
+}
+
 function init() {
+  state.fieldCards.player.style.display = "none";
+  state.fieldCards.computer.style.display = "none";
+
   drawCards(5, playerSides.player1);
   drawCards(5, playerSides.computer);
+
+  const bgm = document.getElementById("bgm");
+  bgm.volume = 0.2;
+  bgm.play();
 }
 
 init();
